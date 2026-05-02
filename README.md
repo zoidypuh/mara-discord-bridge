@@ -24,6 +24,7 @@ Local Discord **user-token** bridge for Mara. Logs messages via HTTP API, polls 
 | `discord_mara_bridge.py` | HTTP API server — send/receive messages, DMs, reactions |
 | `discord_monitor.py` | Background poller — watches channels, queues new messages |
 | `discord_skill_watcher.py` | Gateway watcher for `/discord ... monitor and answer` style live replies |
+| `discord_status.py` | Gets/sets Gis's Discord user custom status via `DISCORD_GISMAR_TOKEN` |
 | `now_playing_youtube_tray_to_discord.py` | Posts Windows YouTube Tray currently playing item to Discord without video embeds |
 | `check_mara_triggers.py` | Extracts `>` prefixed messages from queue for auto-reply |
 
@@ -130,6 +131,28 @@ Message format:
 ```
 
 The helper sends Discord message `flags: 4` (`SUPPRESS_EMBEDS`) by default, so the YouTube URL stays a plain link without a video preview embed. Use `--allow-embeds` only when a preview is wanted. It also uses a per-channel lock and `--dedupe-window` (default 45s) to avoid accidental rapid duplicate posts.
+
+## Set Discord Custom Status
+
+Set/read Gis's Discord user custom status with `DISCORD_GISMAR_TOKEN`:
+
+```bash
+# get current status
+python discord_status.py --get --token-env DISCORD_GISMAR_TOKEN
+
+# set only song
+python discord_status.py --token-env DISCORD_GISMAR_TOKEN "🎵 New Constellations - Hot Blooded (Official Music Video)"
+
+# set song plus newline + URL
+python discord_status.py --token-env DISCORD_GISMAR_TOKEN \
+  "🎵 New Constellations - Hot Blooded (Official Music Video)" \
+  --link "https://www.youtube.com/watch?v=9uIAB_GNmGw"
+
+# clear custom status
+python discord_status.py --clear --token-env DISCORD_GISMAR_TOKEN
+```
+
+The endpoint accepts a newline plus URL in `custom_status.text`; Discord clients may still render it as plain text / single-line-ish, not as a rich embed.
 
 ## API Endpoints
 
