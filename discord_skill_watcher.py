@@ -74,6 +74,20 @@ def api_server_url() -> str:
     port = os.environ.get("API_SERVER_PORT") or load_dotenv_value("API_SERVER_PORT") or "8642"
     return f"http://{host}:{port}/v1/chat/completions"
 
+def likely_needs_research(text: str) -> bool:
+    text_l = (text or "").lower()
+    needles = (
+        "when ", "what time", "schedule", "event", "events", "next ",
+        "today", "tomorrow", "gmt", "timezone", "latest", "current",
+        "news", "price", "weather", "calendar", "look up", "research",
+        "who won", "release", "is out", "f1",
+    )
+    return any(item in text_l for item in needles)
+
+
+def research_ack_text() -> str:
+    return "on it — I’ll look that up and report back."
+
 def rest(method: str, path: str, payload: dict[str, Any] | None = None, *, fail: bool = True) -> Any:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     headers = {
@@ -395,7 +409,7 @@ class Watcher:
             return text[:1800] if text else self.reply_template.format(author=name, content=content, reason=reason)
         except Exception as e:
             emit("BLOCKED", {"error": "agent_reply_failed", "message": str(e)})
-            return self.reply_template.format(author=name, content=content, reason=reason)
+            return ""
 
     def format_reply(self, data: dict[str, Any], reason: str) -> str:
         if self.agent_reply:
@@ -410,19 +424,43 @@ class Watcher:
         if not ok:
             return
         incoming_id = str(data.get("id"))
+        author = data.get("author") or {}
+        incoming_content = data.get("content") or ""
+        ack_id = None
+        if self.agent_reply and likely_needs_research(incoming_content):
+            ack = send(self.channel_id, research_ack_text(), reply_to=incoming_id)
+            ack_id = str(ack.get("id"))
+            self.watch_ids.add(ack_id)
+            self.persist()
+            emit("ACKED", {
+                "reason": "research_needed",
+                "incoming_id": incoming_id,
+                "ack_id": ack_id,
+                "ack_content": ack.get("content"),
+                "jump_url": f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{ack_id}",
+            })
         reply_content = self.format_reply(data, reason)
+        if not reply_content:
+            self.replied_to.add(incoming_id)
+            self.persist()
+            emit("NO_REPLY", {
+                "reason": "empty_agent_reply",
+                "incoming_id": incoming_id,
+                "ack_id": ack_id,
+            })
+            return
         out = send(self.channel_id, reply_content, reply_to=incoming_id)
         out_id = str(out.get("id"))
         self.watch_ids.add(out_id)
         self.replied_to.add(incoming_id)
         self.persist()
-        author = data.get("author") or {}
         emit("AUTO_REPLIED", {
             "reason": reason,
             "incoming_id": incoming_id,
             "incoming_author_id": author.get("id"),
             "incoming_author": author.get("global_name") or author.get("username"),
-            "incoming_content": data.get("content") or "",
+            "incoming_content": incoming_content,
+            "ack_id": ack_id,
             "reply_id": out_id,
             "reply_content": out.get("content"),
             "jump_url": f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{out_id}",
