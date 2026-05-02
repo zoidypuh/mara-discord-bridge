@@ -33,6 +33,20 @@ GATEWAY = "wss://gateway.discord.gg/?v=10&encoding=json"
 STATE_DIR = Path.home() / ".hermes" / "state"
 TEXT_CHANNEL_TYPES = {0, 5}  # guild text, announcement
 PREFERRED_CHANNEL_NAMES = ("general", "degen-trading", "chat", "lounge", "main")
+CHANNEL_ALIASES_PATH = Path.home() / ".hermes" / "discord-channel-aliases.json"
+
+
+def resolve_channel_alias(target: str) -> str:
+    """Map friendly aliases like 'fomobros' to Discord channel IDs when configured."""
+    raw = (target or "").strip()
+    if raw.isdigit():
+        return raw
+    try:
+        data = json.loads(CHANNEL_ALIASES_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return raw
+    aliases = data.get("aliases") or {}
+    return str(aliases.get(raw) or aliases.get(raw.lower()) or raw)
 
 
 def emit(prefix: str | None, obj: dict[str, Any]) -> None:
@@ -556,7 +570,8 @@ def main() -> int:
     p.add_argument("message", metavar="prompt", nargs="*", help="Prompt/message words to post")
     args = p.parse_args()
 
-    resolved = resolve_target(args.target_id)
+    target_id = resolve_channel_alias(args.target_id)
+    resolved = resolve_target(target_id)
     base = state_base(str(resolved["guild_id"]), str(resolved["channel_id"]))
     pid_path = base.with_suffix(".pid")
     if args.stop:

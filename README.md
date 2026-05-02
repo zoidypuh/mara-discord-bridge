@@ -23,6 +23,8 @@ Local Discord **user-token** bridge for Mara. Logs messages via HTTP API, polls 
 |------|---------|
 | `discord_mara_bridge.py` | HTTP API server — send/receive messages, DMs, reactions |
 | `discord_monitor.py` | Background poller — watches channels, queues new messages |
+| `discord_skill_watcher.py` | Gateway watcher for `/discord ... monitor and answer` style live replies |
+| `now_playing_youtube_tray_to_discord.py` | Posts Windows YouTube Tray currently playing item to Discord without video embeds |
 | `check_mara_triggers.py` | Extracts `>` prefixed messages from queue for auto-reply |
 
 ## Install
@@ -78,6 +80,8 @@ Messages starting with `>` are auto-detected and replied to by Mara every minute
 
 For live Mara-style conversation, use `discord_skill_watcher.py` instead of the old static-template reply mode. It can monitor a channel without posting a starter message and generate real replies through the local Hermes API Server.
 
+Friendly channel aliases are loaded from `~/.hermes/discord-channel-aliases.json`; copy `discord-channel-aliases.example.json` there and edit it. Example: `fomobros` → `730692714642800650`.
+
 ```bash
 source .venv/bin/activate
 export DISCORD_USER_TOKEN="$DISCORD_MARA_TOKEN"
@@ -101,6 +105,31 @@ API_SERVER_HOST=127.0.0.1
 API_SERVER_PORT=8642
 API_SERVER_KEY=...
 ```
+
+## Post Windows YouTube Tray “Now Playing”
+
+Post the currently playing `com.gismar.youtube-tray` media session to Discord:
+
+```bash
+source .venv/bin/activate
+export DISCORD_USER_TOKEN="$DISCORD_MARA_TOKEN"
+python now_playing_youtube_tray_to_discord.py
+```
+
+Default channel is `730692714642800650` (`fomobros`). Override with a positional channel ID:
+
+```bash
+python now_playing_youtube_tray_to_discord.py 730692714642800650
+```
+
+Message format:
+
+```text
+🎵 **<title>**
+🔗 <youtube-url>
+```
+
+The helper sends Discord message `flags: 4` (`SUPPRESS_EMBEDS`) by default, so the YouTube URL stays a plain link without a video preview embed. Use `--allow-embeds` only when a preview is wanted. It also uses a per-channel lock and `--dedupe-window` (default 45s) to avoid accidental rapid duplicate posts.
 
 ## API Endpoints
 

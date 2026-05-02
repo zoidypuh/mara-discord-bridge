@@ -1,0 +1,12 @@
+{
+  "aliases": {
+    "fomobros": "730692714642800650"
+  },
+  "channels": {
+    "730692714642800650": {
+      "alias": "fomobros",
+      "guild_id": "730692714206724106",
+      "discord_channel_name": "general"
+    }
+  }
+}
