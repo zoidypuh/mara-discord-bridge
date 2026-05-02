@@ -148,6 +148,12 @@ python discord_status.py --token-env DISCORD_GISMAR_TOKEN \
   "🎵 New Constellations - Hot Blooded (Official Music Video)" \
   --link "https://www.youtube.com/watch?v=9uIAB_GNmGw"
 
+# set currently playing YouTube Tray song plus auto-resolved newline + URL
+python discord_status.py --token-env DISCORD_GISMAR_TOKEN song
+
+# set currently playing YouTube Tray song without URL
+python discord_status.py --token-env DISCORD_GISMAR_TOKEN song --no-link
+
 # clear custom status
 python discord_status.py --clear --token-env DISCORD_GISMAR_TOKEN
 ```
