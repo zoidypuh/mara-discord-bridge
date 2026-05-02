@@ -73,6 +73,35 @@ Edit `WATCH_CHANNELS` in `discord_monitor.py` to add/remove channels.
 
 Messages starting with `>` are auto-detected and replied to by Mara every minute via a Hermes cron job.
 
+
+## Realtime Agent Reply Watcher
+
+For live Mara-style conversation, use `discord_skill_watcher.py` instead of the old static-template reply mode. It can monitor a channel without posting a starter message and generate real replies through the local Hermes API Server.
+
+```bash
+source .venv/bin/activate
+export DISCORD_USER_TOKEN="$DISCORD_MARA_TOKEN"
+python discord_skill_watcher.py --duration 0 --replace --watch-only --agent-reply 730692714642800650
+```
+
+Important flags:
+
+| Flag | Purpose |
+|------|---------|
+| `--watch-only` | Start/replace watcher without posting a junk starter message |
+| `--agent-reply` | Generate a real reply via Hermes API Server instead of repeating a static template |
+| `--reply-template` | Fallback/static template when `--agent-reply` is not used or API generation fails |
+
+The watcher replies to Discord replies on watched messages, real mentions, and plain-text `@mara` mentions. This fixes the old `gotcha, {author} — say more?` loop by using Hermes for actual context-aware replies.
+
+Hermes API Server config is read from environment or `~/.hermes/.env`:
+
+```env
+API_SERVER_HOST=127.0.0.1
+API_SERVER_PORT=8642
+API_SERVER_KEY=...
+```
+
 ## API Endpoints
 
 Base URL: `http://127.0.0.1:8787`
